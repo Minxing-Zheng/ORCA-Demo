@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="ORCA: Generative Conformal Prediction with Optimized Coverage Allocation (NeurIPS 2026). Project page with an interactive demo comparing Standard CP, PCP and ORCA.">
+<meta name="citation_title" content="Generative Conformal Prediction with Optimized Coverage Allocation">
+<meta name="citation_author" content="Minxing Zheng">
+<meta name="citation_author" content="Shixiang Zhu">
+<meta name="citation_date" content="2026">
+<meta name="citation_conference_title" content="Advances in Neural Information Processing Systems">
+<meta name="citation_arxiv_id" content="2410.13735">
+<meta name="theme-color" content="#102137">
+<link rel="canonical" href="https://minxing-zheng.github.io/orca/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23007d70' fill-opacity='.25'/%3E%3Ccircle cx='16' cy='16' r='10' fill='%23007d70'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ORCA: Generative Conformal Prediction with Optimized Coverage Allocation">
+<meta property="og:description" content="Interactive demo (NeurIPS 2026): Standard CP, PCP and ORCA prediction sets built from the same generated samples, computed live in the browser.">
+<meta property="og:url" content="https://minxing-zheng.github.io/ORCA-Demo/">
+<meta property="og:image" content="https://minxing-zheng.github.io/ORCA-Demo/assets/preview.png">
+<meta property="og:image:alt" content="Standard CP, PCP and ORCA prediction sets on the same generated samples">
+<meta name="twitter:card" content="summary_large_image">
+<title>ORCA — Generative Conformal Prediction with Optimized Coverage Allocation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+html{scroll-behavior:smooth}body{margin:0}[hidden]{display:none!important}img{max-width:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* Layout: a paper project page. Title block, method overview with an illustrated three-step pipeline, the live three-method demo, step cards, citation. */
+:root{
+  --bg:#edf2f2; --surface:#ffffff; --ink:#102137; --muted:#55687a; --line:#d3dde1; --soft:#e5edef;
+  --cp:#245caa; --pcp:#b65e23; --orca:#007d70; --heat:#17344b; --hit:#2b8a5a; --miss:#c43d2b;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#09131b; --surface:#0f1c28; --ink:#e2ebef; --muted:#8ea2b2; --line:#21364a; --soft:#152738;
+  --cp:#6f9fe6; --pcp:#e88d4d; --orca:#2ec4ae; --heat:#a6d8ee; --hit:#5cc98b; --miss:#ff7c63; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#09131b; --surface:#0f1c28; --ink:#e2ebef; --muted:#8ea2b2; --line:#21364a; --soft:#152738;
+  --cp:#6f9fe6; --pcp:#e88d4d; --orca:#2ec4ae; --heat:#a6d8ee; --hit:#5cc98b; --miss:#ff7c63; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+.page{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:grid;gap:36px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(28px,4.2vw,46px);line-height:1.06;font-weight:700;max-width:22ch}
+h2{font-size:clamp(22px,2.6vw,28px);line-height:1.15;font-weight:700}
+h3{font-size:17px;font-weight:700;letter-spacing:-.01em}
+p{margin:0}
+.eyebrow{font:500 12px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--orca)}
+.lede{color:var(--muted);max-width:70ch;font-size:16px}
+.hint{color:var(--muted);font-size:13px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--orca);outline-offset:2px}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+
+.bench{display:grid;gap:14px}
+.rail{display:grid;grid-template-columns:auto repeat(2,minmax(0,1fr)) auto;gap:14px 22px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.ctl{display:grid;gap:6px;min-width:0}
+.ctl label,.ctl .lab{font:500 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctl label b{color:var(--ink);font-weight:500;text-transform:none;letter-spacing:0}
+input[type=range]{width:100%;accent-color:var(--orca);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:13px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.chip:hover:not([aria-pressed="true"]){border-color:var(--orca)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 14px;font-size:13px;font-weight:600;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--orca)}
+.btn.warn[aria-pressed="true"]{background:var(--miss);border-color:var(--miss);color:var(--surface)}
+
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid;grid-template-rows:auto auto 1fr;min-width:0}
+.panel.orca{border-color:color-mix(in srgb,var(--orca) 55%,var(--line))}
+.phead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:11px 14px 9px;border-bottom:1px solid var(--line)}
+.phead h3{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.phead h3 i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.phead p{font-size:12px;color:var(--muted);text-align:right}
+.panel canvas{display:block;width:100%;aspect-ratio:3/2;max-width:100%;cursor:crosshair}
+.trio.d1 .panel canvas{aspect-ratio:2/1}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:11px 14px 13px;border-top:1px solid var(--line)}
+.stat{display:grid;gap:3px;min-width:0}
+.stat .k{font:500 10.5px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.stat .v{font:500 24px/1.1 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .v small{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:400}
+.bar{height:6px;border-radius:3px;background:var(--soft);position:relative}
+.bar span{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.bar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55}
+.delta{font:500 12px/1 var(--mono);padding:3px 7px;border-radius:999px;background:color-mix(in srgb,var(--orca) 14%,transparent);color:var(--orca);white-space:nowrap}
+.delta.bad{background:color-mix(in srgb,var(--miss) 14%,transparent);color:var(--miss)}
+.tabs-m{display:none}
+.banner{font-size:13px;padding:8px 12px;border-radius:7px;background:color-mix(in srgb,var(--miss) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--miss) 40%,var(--line))}
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend b{color:var(--ink);font-weight:600}
+.legend i{display:inline-block;flex:none}
+.k-dens{width:18px;height:12px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--heat) 8%,var(--surface)),color-mix(in srgb,var(--heat) 55%,var(--surface)))}
+.k-oracle{width:18px;height:12px;border:1.6px dashed var(--ink);border-radius:3px}
+.k-cont{width:16px;height:16px;border-radius:50%;border:1px solid color-mix(in srgb,var(--heat) 45%,var(--surface));box-shadow:inset 0 0 0 3px var(--surface),inset 0 0 0 4px color-mix(in srgb,var(--heat) 70%,var(--surface))}
+.bench.dim1 .d2only,.bench.dim2 .d1only{display:none}
+.k-dot{width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.k-set{width:18px;height:12px;border-radius:3px;background:linear-gradient(90deg,var(--cp) 0 33%,var(--pcp) 33% 66%,var(--orca) 66%);opacity:.75}
+.why{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:14px}
+.why b{font-family:var(--display);font-size:15px}
+.why p{color:var(--muted)}
+
+.sechead{display:grid;gap:6px}
+.hood{display:grid;grid-template-columns:1fr;gap:14px}
+.stepcard{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px 28px;align-items:center}
+.stepcard .txt{display:grid;gap:10px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px 16px;display:grid;gap:10px;align-content:start;min-width:0}
+.card .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card .step{font:500 12px/1 var(--mono);color:var(--orca);margin-right:8px}
+.card p{font-size:13.5px;color:var(--muted)}
+.card canvas{display:block;width:100%;max-width:100%}
+.meter{display:flex;gap:14px;flex-wrap:wrap;font:13px/1.3 var(--mono);color:var(--muted)}
+.meter b{color:var(--ink);font-weight:500}
+table.modes{width:100%;border-collapse:collapse;font:12.5px/1.3 var(--mono);font-variant-numeric:tabular-nums}
+table.modes th,table.modes td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+table.modes th:first-child,table.modes td:first-child{text-align:left}
+table.modes th{font-weight:500;color:var(--muted)}
+.lowcov{color:var(--miss)}
+
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+footer a{color:inherit}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{font:700 18px/1 var(--display);letter-spacing:.12em;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:9px}
+.brand i{width:14px;height:14px;border-radius:50%;background:var(--orca);box-shadow:0 0 0 3px color-mix(in srgb,var(--orca) 25%,transparent)}
+.nav-links{display:flex;gap:20px;font-size:14px;flex-wrap:wrap}
+.nav-links a{color:var(--ink);text-decoration:none}
+.nav-links a:hover{text-decoration:underline;text-underline-offset:3px}
+.nav-links a.home{color:var(--orca);font-weight:600}
+.hero{display:grid;gap:12px}
+.hero h1{max-width:30ch}
+.hero h1 span{color:var(--orca)}
+.byline{font-weight:600;font-size:17px}
+.venue{display:inline-flex;align-items:center;gap:8px;color:var(--orca);font-weight:600;font-size:14px}
+.venue::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--orca)}
+.intro{color:var(--muted);max-width:76ch;font-size:16px}
+.intro strong{color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.actions a{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;text-decoration:none}
+.actions a:hover{border-color:var(--orca)}
+.actions a.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.note{font-size:12.5px;color:var(--muted)}
+.overview{display:grid;gap:22px}
+.whybox{border-left:3px solid var(--orca);background:var(--surface);border-radius:0 10px 10px 0;padding:18px 22px;display:grid;gap:6px}
+.whybox p{color:var(--muted);max-width:100ch}
+.pipeline{list-style:none;margin:0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.pipeline li{display:grid;gap:10px;align-content:start;position:relative;min-width:0}
+.pipeline li:not(:last-child)::after{content:"→";position:absolute;right:-19px;top:2px;font:20px/1 var(--display);color:var(--muted)}
+.pipeline .pt{display:flex;align-items:center;gap:10px}
+.pipeline .pt b{font:500 12px/1 var(--mono);color:var(--orca);background:color-mix(in srgb,var(--orca) 12%,transparent);padding:5px 7px;border-radius:5px}
+.pipeline p{color:var(--muted);font-size:14px}
+.citation{display:grid;gap:12px}
+.citation pre{margin:0;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--orca);border-radius:0 8px 8px 0;padding:14px 16px;font:13px/1.6 var(--mono);color:var(--ink)}
+.citation .btns{align-items:center}
+
+@media (max-width:980px){
+  .rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rail .ex{grid-column:1/-1}
+  .pipeline{grid-template-columns:1fr;gap:22px}
+  .pipeline li:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-20px}
+  .hood{grid-template-columns:1fr}
+  .stepcard{grid-template-columns:1fr}
+  .budget{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .tabs-m{display:flex}
+  .trio{grid-template-columns:1fr}
+  .trio.live .panel{display:none}
+  .trio.live .panel.show{display:grid}
+  .rail{grid-template-columns:1fr}
+  .phead p:not(.num){display:none}
+  .why{grid-template-columns:1fr}
+  .nav-links a:not(.home){display:none}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="nav" aria-label="Page navigation">
+  <a class="brand" href="#top"><i aria-hidden="true"></i>ORCA</a>
+  <div class="nav-links"><a class="home" href="https://minxing-zheng.github.io/">Minxing Zheng</a><a href="#method">Method</a><a href="#demo">Demo</a><a href="#citation">Citation</a></div>
+</nav>
+
+<header class="hero" id="top">
+  <p class="eyebrow">ORCA · Project page</p>
+  <h1>Generative Conformal Prediction with <span>Optimized Coverage Allocation</span></h1>
+  <p class="byline">Minxing Zheng · Shixiang Zhu</p>
+  <p class="venue">NeurIPS 2026</p>
+  <div class="actions">
+    <a class="primary" href="https://neurips.cc/virtual/2026/poster/149988">NeurIPS paper ↗</a>
+    <a href="https://arxiv.org/abs/2410.13735">arXiv preprint ↗</a>
+    <a href="https://github.com/Minxing-Zheng/ORCA">Code ↗</a>
+    <a href="#demo">Interactive demo ↓</a>
+  </div>
+</header>
+
+<section class="overview" id="method" aria-label="Method overview">
+  <div class="whybox">
+    <h2>ORCA: Optimized Ranking and Coverage Allocation</h2>
+    <p>A generative model gives many plausible outcomes, and they often concentrate in several separate modes. Standard CP draws one region around a single prediction, so it must also cover the empty space between modes. PCP keeps the modes apart with a ball around every sample, but every ball gets the same radius. ORCA reads the local geometry of the samples: it ranks them from crowded to isolated and learns a separate radius for each rank. The result is a set of disconnected pieces with adaptive radii that stay close to the likely outcomes, and a final calibration step keeps the guaranteed coverage, such as 90%.</p>
+  </div>
+  <ol class="pipeline">
+    <li><div class="pt"><b>01</b><h3>Explore</h3></div><p>Draw samples from the generative model and rank them by their mean distance to a few nearest neighbours: densest first, stray samples last.</p></li>
+    <li><div class="pt"><b>02</b><h3>Optimize</h3></div><p>On an exploration split, learn one radius per rank: the smallest balls that still cover the target share of outcomes. Isolated samples can get no ball at all.</p></li>
+    <li><div class="pt"><b>03</b><h3>Calibrate</h3></div><p>On a separate calibration split, scale every radius by one common factor, chosen so the target share of outcomes is covered. This step alone guarantees the coverage.</p></li>
+  </ol>
+</section>
+
+<section class="sechead" id="demo">
+  <h2>Interactive demo</h2>
+  <p class="lede">Standard CP, PCP and ORCA build prediction sets from the same generated samples. Move a slider and everything is recomputed on the spot, from sampling to the final coverage check.</p>
+</section>
+
+<section class="bench dim2" id="bench" aria-label="Live comparison">
+  <div class="rail">
+    <div class="ctl ex">
+      <span class="lab">Example</span>
+      <div class="seg" role="group" aria-label="Example">
+        <button type="button" id="b-d2" aria-pressed="true">2D Demo</button>
+        <button type="button" id="b-d1" aria-pressed="false">1D Demo</button>
+      </div>
+    </div>
+    <div class="ctl"><label for="s-alpha">Target coverage <b id="o-alpha">90%</b></label><input id="s-alpha" type="range" min="80" max="95" step="1" value="90"></div>
+    <div class="ctl"><label for="s-k">Number of generated samples K <b id="o-k">20</b></label><input id="s-k" type="range" min="20" max="40" step="1" value="20"></div>
+    <div class="btns">
+      <button class="btn" id="b-draw" type="button">New draw</button>
+    </div>
+  </div>
+  <div class="chips tabs-m" role="group" aria-label="Show method">
+    <button class="chip" type="button" data-show="cp" aria-pressed="false">Standard CP</button>
+    <button class="chip" type="button" data-show="pcp" aria-pressed="false">PCP</button>
+    <button class="chip" type="button" data-show="orca" aria-pressed="true">ORCA</button>
+  </div>
+  <div class="trio live" id="trio">
+    <article class="panel cp" data-m="cp">
+      <div class="phead"><h3><i style="background:var(--cp)"></i>Standard CP</h3><p>One ball around the mean</p></div>
+      <canvas id="cv-cp" aria-label="Standard CP prediction set" role="img"></canvas>
+      <div class="stats">
+        <div class="stat"><span class="k">Coverage</span><span class="v" id="cov-cp">-</span><div class="bar"><span id="covb-cp" style="background:var(--cp)"></span><em class="tgt"></em></div></div>
+        <div class="stat"><span class="k sizek">Mean area</span><span class="v" id="area-cp">-</span><div class="bar"><span id="areab-cp" style="background:var(--cp)"></span></div></div>
+      </div>
+    </article>
+    <article class="panel pcp" data-m="pcp">
+      <div class="phead"><h3><i style="background:var(--pcp)"></i>PCP</h3><p>Equal balls around every sample</p></div>
+      <canvas id="cv-pcp" aria-label="PCP prediction set" role="img"></canvas>
+      <div class="stats">
+        <div class="stat"><span class="k">Coverage</span><span class="v" id="cov-pcp">-</span><div class="bar"><span id="covb-pcp" style="background:var(--pcp)"></span><em class="tgt"></em></div></div>
+        <div class="stat"><span class="k sizek">Mean area</span><span class="v" id="area-pcp">-</span><div class="bar"><span id="areab-pcp" style="background:var(--pcp)"></span></div></div>
+      </div>
+    </article>
+    <article class="panel orca show" data-m="orca">
+      <div class="phead"><h3><i style="background:var(--orca)"></i>ORCA</h3><span class="delta" id="delta">-</span></div>
+      <canvas id="cv-orca" aria-label="ORCA prediction set" role="img"></canvas>
+      <div class="stats">
+        <div class="stat"><span class="k">Coverage</span><span class="v" id="cov-orca">-</span><div class="bar"><span id="covb-orca" style="background:var(--orca)"></span><em class="tgt"></em></div></div>
+        <div class="stat"><span class="k sizek">Mean area</span><span class="v" id="area-orca">-</span><div class="bar"><span id="areab-orca" style="background:var(--orca)"></span></div></div>
+      </div>
+    </article>
+  </div>
+  <div class="legend">
+    <span class="d2only"><i class="k-cont"></i>True density of Y (contour lines)</span>
+    <span class="d1only"><i class="k-dens"></i>True density of Y</span>
+    <span><i class="k-dot"></i>Samples from the trained generator, one draw</span>
+    <span><i class="k-set"></i>Each method's prediction set</span>
+  </div>
+  <div class="why"><b>Where ORCA's edge comes from</b><p>A trained generator is never perfect, so a few of its samples land where Y never goes: the dots that land away from the true distribution. Those samples sit alone. ORCA ranks them last and gives them little or no radius, while PCP draws the same ball around every sample.</p></div>
+</section>
+
+<section class="citation" id="citation">
+  <h2>Citation</h2>
+  <pre id="bib">@inproceedings{zheng2026orca,
+  title     = {Generative Conformal Prediction with Optimized Coverage Allocation},
+  author    = {Zheng, Minxing and Zhu, Shixiang},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026}
+}</pre>
+  <div class="btns"><button class="btn" id="b-copy" type="button">Copy BibTeX</button><span class="hint" id="copy-msg" aria-live="polite"></span></div>
+</section>
+<footer><span><b>ORCA</b> · Optimized Ranking and Coverage Allocation</span><span><a href="https://github.com/Minxing-Zheng/ORCA">Full code on GitHub</a> · <a href="https://minxing-zheng.github.io/">Minxing Zheng</a></span></footer>
+</div>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const NE=500,NC=500,NT=1000,NAREA=40,KMAX=40,SPLITS=50;
+const METH=['cp','pcp','orca'],NAME={cp:'Standard CP',pcp:'PCP',orca:'ORCA'};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MONO=()=>getComputedStyle(document.body).getPropertyValue('--mono');
+const ISLANDS=[{x:-1,y:0,s:0.14,w:50},{x:1,y:0,s:0.14,w:50}];
+// the generator is a trained model: 75% of its samples follow the islands, 25% scatter around them
+const SCATTER=0.25;
+const VIEWS={2:{x0:-1.875,x1:1.875,y0:-1.25,y1:1.25},1:{x0:-2.2,x1:2.2}};
+// stray samples land uniformly inside this box, so every sample stays in the window
+const BOX={2:{x0:-1.75,x1:1.75,y0:-1.15,y1:1.15},1:{x0:-2.05,x1:2.05}};
+
+/* ---------- random numbers ---------- */
+function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeBank(seed,count){const r=mulberry32(seed),u=new Float64Array(count),v=new Float64Array(count),z1=new Float64Array(count),z2=new Float64Array(count);
+  for(let i=0;i<count;i++){u[i]=r();v[i]=r();const a=r()||1e-12,b=r(),m=Math.sqrt(-2*Math.log(a));z1[i]=m*Math.cos(2*Math.PI*b);z2[i]=m*Math.sin(2*Math.PI*b)}return{u,v,z1,z2}}
+
+/* ---------- distribution ---------- */
+function prep(blobs,dim){const tot=blobs.reduce((s,b)=>s+b.w,0);let c=0;const cum=blobs.map(b=>(c+=b.w/tot));cum[cum.length-1]=1;
+  let cx=0,cy=0,v2=0;for(const b of blobs){cx+=b.x*b.w/tot;cy+=b.y*b.w/tot}
+  for(const b of blobs)v2+=b.w/tot*((b.x-cx)**2+(dim===2?(b.y-cy)**2:0)+dim*b.s*b.s);
+  return{blobs,cum,cx,cy:dim===2?cy:0,tot}}
+function pick(cum,u){let k=0;while(k<cum.length-1&&u>cum[k])k++;return k}
+function density(blobs,dim,x,y){const tot=blobs.reduce((s,b)=>s+b.w,0);let s=0;
+  for(const b of blobs){const dx=x-b.x;if(dim===1)s+=b.w/tot*Math.exp(-dx*dx/(2*b.s*b.s))/(b.s*Math.sqrt(2*Math.PI));else{const dy=y-b.y;s+=b.w/tot*Math.exp(-(dx*dx+dy*dy)/(2*b.s*b.s))/(2*Math.PI*b.s*b.s)}}return s}
+// the true highest-density region at the target coverage
+function oracle(blobs,alpha,dim){const V=VIEWS[dim];
+  if(dim===2){const N=241,h=(V.x1-V.x0)/(N-1),Ny=Math.round((V.y1-V.y0)/h)+1,G=new Float64Array(N*Ny);for(let j=0;j<Ny;j++)for(let i=0;i<N;i++)G[j*N+i]=density(blobs,2,V.x0+i*h,V.y1-j*h);
+    const s=Float64Array.from(G).sort().reverse();let mass=0;for(const v of s)mass+=v;let acc=0,lam=0,cnt=0;for(let k=0;k<s.length;k++){acc+=s[k];if(acc>=(1-alpha)*mass){lam=s[k];cnt=k+1;break}}
+    return{dim,N,Ny,h,G,lam,size:cnt*h*h}}
+  const N=4001,h=(V.x1-V.x0)/(N-1),G=new Float64Array(N);for(let i=0;i<N;i++)G[i]=density(blobs,1,V.x0+i*h,0);
+  const s=Float64Array.from(G).sort().reverse();let mass=0;for(const v of s)mass+=v;let acc=0,lam=0,cnt=0;for(let k=0;k<N;k++){acc+=s[k];if(acc>=(1-alpha)*mass){lam=s[k];cnt=k+1;break}}
+  const iv=[];let a=null;for(let i=0;i<N;i++){const x=V.x0+i*h;if(G[i]>=lam){if(a===null)a=x}else if(a!==null){iv.push([a,x-h]);a=null}}if(a!==null)iv.push([a,V.x1]);
+  return{dim,N,h,G,lam,size:cnt*h,iv}}
+
+/* ---------- ORCA pieces ---------- */
+function conformalQ(scores,alpha){const n=scores.length,k=Math.ceil((n+1)*(1-alpha));if(k>n)return Infinity;const s=Float64Array.from(scores).sort();return s[k-1]}
+
+// ORCA-Greedy: weighted partial set cover over rank-level jumps, then prune.
+function greedy(E,n,K,alpha,d){
+  const target=Math.min(n,Math.ceil((1-alpha)*(n+1)));
+  const pw=d===2?v=>v*v:v=>v;
+  const ord=[];for(let r=0;r<K;r++){const a=new Int32Array(n);for(let i=0;i<n;i++)a[i]=i;a.sort((p,q)=>E[p*K+r]-E[q*K+r]);ord.push(a)}
+  const thr=new Float64Array(K),covered=new Uint8Array(n),steps=[];let cov=0;
+  while(cov<target){
+    let best=Infinity,br=-1,bv=0;
+    for(let r=0;r<K;r++){const o=ord[r],tr=thr[r],base=pw(tr);let cnt=0;
+      for(let k=0;k<n;k++){const i=o[k];if(covered[i])continue;const v=E[i*K+r];if(v<=tr)continue;cnt++;const ratio=(pw(v)-base)/cnt;if(ratio<best){best=ratio;br=r;bv=v}}}
+    if(br<0)break;
+    thr[br]=bv;for(let i=0;i<n;i++)if(!covered[i]&&E[i*K+br]<=bv){covered[i]=1;cov++}
+    steps.push({r:br,v:bv,cov});
+  }
+  const cc=new Int32Array(n);for(let i=0;i<n;i++)for(let r=0;r<K;r++)if(thr[r]>0&&E[i*K+r]<=thr[r])cc[i]++;
+  cov=0;for(let i=0;i<n;i++)if(cc[i]>0)cov++;
+  let changed=true,guard=0;
+  while(changed&&guard++<50){changed=false;
+    for(let r=0;r<K;r++){const o=ord[r];
+      while(thr[r]>0){let p=-1;for(let k=0;k<n;k++){if(E[o[k]*K+r]<thr[r])p=k;else break}
+        const lower=p>=0?E[o[p]*K+r]:0;let lost=0;
+        for(let k=p+1;k<n&&E[o[k]*K+r]<=thr[r];k++)if(cc[o[k]]===1)lost++;
+        if(cov-lost<target)break;
+        for(let k=p+1;k<n&&E[o[k]*K+r]<=thr[r];k++){const i=o[k];cc[i]--;if(cc[i]===0)cov--}
+        thr[r]=lower;changed=true}}}
+  return{t:thr,steps,target};
+}
+function orcaScores(E,K,t,from,to){const s=new Float64Array(to-from);for(let i=from;i<to;i++){let mn=Infinity;for(let r=0;r<K;r++){const e=E[i*K+r],tr=t[r];const v=tr>0?e/tr:(e===0?0:Infinity);if(v<mn)mn=v}s[i-from]=mn}return s}
+
+const AG=240,AH=12/AG,AX0=-6,amark=new Int32Array(AG*AG);let astamp=0;
+function unionArea(cx,cy,rad,K){astamp++;let cnt=0;
+  for(let r=0;r<K;r++){const R=rad[r];if(!(R>0))continue;if(!isFinite(R))return Infinity;
+    const i0=Math.max(0,Math.floor((cx[r]-R-AX0)/AH)),i1=Math.min(AG-1,Math.floor((cx[r]+R-AX0)/AH));
+    const j0=Math.max(0,Math.floor((cy[r]-R-AX0)/AH)),j1=Math.min(AG-1,Math.floor((cy[r]+R-AX0)/AH)),R2=R*R;
+    for(let j=j0;j<=j1;j++){const dy=AX0+(j+.5)*AH-cy[r],dy2=dy*dy;if(dy2>R2)continue;
+      for(let i=i0;i<=i1;i++){const dx=AX0+(i+.5)*AH-cx[r];if(dx*dx+dy2<=R2){const c=j*AG+i;if(amark[c]!==astamp){amark[c]=astamp;cnt++}}}}}
+  return cnt*AH*AH}
+function unionLen(iv){iv.sort((a,b)=>a[0]-b[0]);let L=0,cs=-Infinity,ce=-Infinity;for(const[a,b]of iv){if(a>ce){if(ce>cs)L+=ce-cs;cs=a;ce=b}else ce=Math.max(ce,b)}if(ce>cs)L+=ce-cs;return L}
+function mergeIv(iv){iv.sort((a,b)=>a[0]-b[0]);const out=[];for(const[a,b]of iv){if(out.length&&a<=out[out.length-1][1])out[out.length-1][1]=Math.max(out[out.length-1][1],b);else out.push([a,b])}return out}
+
+/* ---------- the pipeline (1D or 2D response at a fixed input) ---------- */
+function pipeline(o){
+  const K=o.K,dim=o.dim,nFit=NE+NC,nT=o.nT,n=nFit+nT,m=Math.max(1,Math.ceil(Math.sqrt(K))),hall=o.hall||0;
+  const T=prep(o.blobs,dim),bx=BOX[dim];
+  const Y=new Float64Array(n*2),comp=new Uint8Array(n),C=new Float64Array(n*K*2),E=new Float64Array(n*K),prox=new Float64Array(n*K),
+        cpS=new Float64Array(n),pcpS=new Float64Array(n),ctr=new Float64Array(n*2);
+  const px=new Float64Array(K),py=new Float64Array(K),D=new Float64Array(K*K),row=new Float64Array(K),pr=new Float64Array(K),idx=new Array(K);
+  for(let i=0;i<n;i++){
+    const B=i<nFit?o.fit:o.test,base=(i<nFit?i:i-nFit)*(KMAX+1);
+    const kc=pick(T.cum,B.u[base]),b=T.blobs[kc],yx=b.x+b.s*B.z1[base],yy=dim===2?b.y+b.s*B.z2[base]:0;
+    Y[2*i]=yx;Y[2*i+1]=yy;comp[i]=kc;
+    let mx=0,my=0;
+    for(let j=0;j<K;j++){const q=base+1+j;
+      if(B.v[q]<hall){px[j]=bx.x0+B.u[q]*(bx.x1-bx.x0);py[j]=dim===2?bx.y0+B.v[q]/hall*(bx.y1-bx.y0):0}
+      else{const g=T.blobs[pick(T.cum,B.u[q])];px[j]=g.x+g.s*B.z1[q];py[j]=dim===2?g.y+g.s*B.z2[q]:0}
+      mx+=px[j];my+=py[j]}
+    mx/=K;my/=K;ctr[2*i]=mx;ctr[2*i+1]=my;
+    for(let a=0;a<K;a++){D[a*K+a]=0;for(let c=a+1;c<K;c++){const d=Math.hypot(px[a]-px[c],py[a]-py[c]);D[a*K+c]=d;D[c*K+a]=d}}
+    const mm=Math.min(m,K-1);
+    for(let a=0;a<K;a++){for(let c=0;c<K;c++)row[c]=D[a*K+c];row.sort();let s=0;for(let c=0;c<=mm;c++)s+=row[c];pr[a]=s/(mm+1);idx[a]=a}
+    idx.sort((a,c)=>pr[a]-pr[c]);
+    cpS[i]=Math.hypot(yx-mx,yy-my);
+    let mn=Infinity;
+    for(let r=0;r<K;r++){const j=idx[r],q=i*K+r;C[2*q]=px[j];C[2*q+1]=py[j];prox[q]=pr[j];const e=Math.hypot(px[j]-yx,py[j]-yy);E[q]=e;if(e<mn)mn=e}
+    pcpS[i]=mn;
+  }
+  const opt=greedy(E.subarray(0,NE*K),NE,K,o.alpha,dim);
+  const t=opt.t;
+  const sO=orcaScores(E,K,t,NE,nFit);
+  const q=conformalQ(sO,o.alpha),R=Float64Array.from(t,v=>v*q);
+  const qp=conformalQ(pcpS.subarray(0,nFit),o.alpha),qc=conformalQ(cpS.subarray(0,nFit),o.alpha);
+  const nb=o.blobs.length,hit={cp:new Uint8Array(nT),pcp:new Uint8Array(nT),orca:new Uint8Array(nT)};
+  const byComp=METH.reduce((a,k)=>(a[k]=new Float64Array(nb),a),{}),compN=new Float64Array(nb);
+  for(let k=0;k<nT;k++){const i=nFit+k;hit.cp[k]=cpS[i]<=qc;hit.pcp[k]=pcpS[i]<=qp;let h=0;for(let r=0;r<K;r++)if(E[i*K+r]<=R[r]){h=1;break}hit.orca[k]=h;
+    compN[comp[i]]++;for(const mt of METH)byComp[mt][comp[i]]+=hit[mt][k]}
+  // coverage averaged over 50 random calibration/test splits of the cases after exploration
+  const pool=n-NE,sP=orcaScores(E,K,t,NE,n),perm=Int32Array.from({length:pool},(_,i)=>i),rs=mulberry32(77),cov={cp:0,pcp:0,orca:0};
+  const cO=new Float64Array(NC),cPc=new Float64Array(NE+NC),cCp=new Float64Array(NE+NC);cPc.set(pcpS.subarray(0,NE));cCp.set(cpS.subarray(0,NE));
+  for(let rep=0;rep<SPLITS;rep++){for(let i=0;i<NC;i++){const j=i+Math.floor(rs()*(pool-i));const tmp=perm[i];perm[i]=perm[j];perm[j]=tmp}
+    for(let i=0;i<NC;i++){const a=perm[i];cO[i]=sP[a];cPc[NE+i]=pcpS[NE+a];cCp[NE+i]=cpS[NE+a]}
+    const qo=conformalQ(cO,o.alpha),qpp=conformalQ(cPc,o.alpha),qcc=conformalQ(cCp,o.alpha);let ho=0,hp=0,hc=0;
+    for(let i=NC;i<pool;i++){const a=perm[i];ho+=sP[a]<=qo;hp+=pcpS[NE+a]<=qpp;hc+=cpS[NE+a]<=qcc}
+    cov.orca+=ho/(pool-NC)/SPLITS;cov.pcp+=hp/(pool-NC)/SPLITS;cov.cp+=hc/(pool-NC)/SPLITS}
+  const cx=new Float64Array(K),cy=new Float64Array(K),rp=new Float64Array(K).fill(qp);let aP=0,aO=0;const na=Math.min(NAREA,nT);
+  for(let k=0;k<na;k++){const i=nFit+k;for(let r=0;r<K;r++){cx[r]=C[2*(i*K+r)];cy[r]=C[2*(i*K+r)+1]}
+    if(dim===2){aP+=unionArea(cx,cy,rp,K);aO+=unionArea(cx,cy,R,K)}
+    else{aP+=isFinite(qp)?unionLen(Array.from(cx,v=>[v-qp,v+qp])):Infinity;aO+=R.some(v=>!isFinite(v))?Infinity:unionLen(Array.from(cx,(v,r)=>[v-R[r],v+R[r]]).filter((_,r)=>R[r]>0))}}
+  const area={cp:dim===2?Math.PI*qc*qc:2*qc,pcp:aP/na,orca:aO/na};
+  return{K,dim,m,n,nFit,nT,Y,comp,C,E,prox,ctr,t,steps:opt.steps,target:opt.target,q,R,qp,qc,sO,cov,hit,byComp,compN,area,blobs:o.blobs.map(b=>({...b}))};
+}
+
+/* ---------- state ---------- */
+const S={dim:2,blobs:ISLANDS,alpha:0.1,K:20,hall:SCATTER,testSeed:2,disp:0,probe:null,hiRank:-1,anim:null,res:null,orc:null};
+const FIT=makeBank(8,(NE+NC)*(KMAX+1));let TEST=makeBank(S.testSeed,NT*(KMAX+1));
+
+/* ---------- theme ---------- */
+let COL={};
+function hexRgb(h){h=h.trim().replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function readTheme(){const cs=getComputedStyle(document.documentElement);for(const k of['bg','surface','ink','muted','line','soft','cp','pcp','orca','heat','hit','miss'])COL[k]=cs.getPropertyValue('--'+k).trim()}
+const rgba=(hex,a)=>{const[r,g,b]=hexRgb(hex);return`rgba(${r},${g},${b},${a})`};
+
+/* ---------- canvas helpers ---------- */
+const DPR=()=>Math.min(window.devicePixelRatio||1,2);
+function fit(cv){const r=cv.getBoundingClientRect(),d=DPR(),w=Math.max(10,Math.round(r.width*d)),h=Math.max(10,Math.round(r.height*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}const ctx=cv.getContext('2d');ctx.setTransform(d,0,0,d,0,0);return{ctx,w:r.width,h:r.height,d}}
+const off1=document.createElement('canvas'),off2=document.createElement('canvas');
+function drawUnion(ctx,cv,balls,color,fillA,map){
+  const W=cv.width,H=cv.height,d=DPR();for(const c of[off1,off2]){if(c.width!==W||c.height!==H){c.width=W;c.height=H}}
+  if(balls.some(b=>!isFinite(b[2]))){ctx.save();ctx.fillStyle=rgba(color,fillA);ctx.fillRect(0,0,W,H);ctx.restore();return}
+  const a=off1.getContext('2d'),e=off2.getContext('2d');a.setTransform(1,0,0,1,0,0);e.setTransform(1,0,0,1,0,0);a.clearRect(0,0,W,H);e.clearRect(0,0,W,H);
+  const path=new Path2D();for(const[x,y,r]of balls){if(!(r>0))continue;const X=map.x(x)*d,Y=map.y(y)*d,Rp=r*map.s*d;path.moveTo(X+Rp,Y);path.arc(X,Y,Rp,0,2*Math.PI)}
+  a.fillStyle=color;a.fill(path);
+  e.strokeStyle=color;e.lineWidth=2.2*d;e.stroke(path);e.globalCompositeOperation='destination-out';e.fill(path);e.globalCompositeOperation='source-over';
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=fillA;ctx.drawImage(off1,0,0);ctx.globalAlpha=1;ctx.drawImage(off2,0,0);ctx.restore();
+}
+// 2D density shading, shared by panels
+// marching squares: contour lines of the true density at a few levels
+function drawContours(ctx,O,map,levels){const N=O.N,Ny=O.Ny,G=O.G,hp=O.h*map.s;let mx=0;for(const v of G)if(v>mx)mx=v;
+  for(const f of levels){const L=f*mx,lerp=(va,vb)=>(L-va)/(vb-va);ctx.beginPath();
+    for(let j=0;j<Ny-1;j++)for(let i=0;i<N-1;i++){const a=G[j*N+i],b=G[j*N+i+1],c=G[(j+1)*N+i+1],d=G[(j+1)*N+i];
+      const k=(a>=L?8:0)|(b>=L?4:0)|(c>=L?2:0)|(d>=L?1:0);if(k===0||k===15)continue;
+      const x=i*hp,y=j*hp,P={t:[x+lerp(a,b)*hp,y],r:[x+hp,y+lerp(b,c)*hp],b:[x+lerp(d,c)*hp,y+hp],l:[x,y+lerp(a,d)*hp]};
+      const segs={1:[['l','b']],2:[['b','r']],3:[['l','r']],4:[['t','r']],5:[['t','r'],['l','b']],6:[['t','b']],7:[['t','l']],8:[['t','l']],9:[['t','b']],10:[['t','l'],['r','b']],11:[['t','r']],12:[['l','r']],13:[['r','b']],14:[['l','b']]}[k];
+      for(const[p,q]of segs){ctx.moveTo(P[p][0],P[p][1]);ctx.lineTo(P[q][0],P[q][1])}}
+    ctx.strokeStyle=rgba(COL.heat,.35+.4*f);ctx.lineWidth=1;ctx.stroke()}}
+
+/* ---------- main panels ---------- */
+const cvs={cp:$('cv-cp'),pcp:$('cv-pcp'),orca:$('cv-orca')};
+function mapFor(w){const V=VIEWS[S.dim],s=w/(V.x1-V.x0);return{s,x:x=>(x-V.x0)*s,y:y=>S.dim===2?(V.y1-y)*s:0,ix:px=>V.x0+px/s,iy:py=>S.dim===2?V.y1-py/s:0}}
+function dispCloud(){const R=S.res,i=R.nFit+S.disp,K=R.K,pts=[];for(let r=0;r<K;r++)pts.push([R.C[2*(i*K+r)],R.C[2*(i*K+r)+1]]);return{i,pts,ctr:[R.ctr[2*i],R.ctr[2*i+1]]}}
+function orcaRadii(){const R=S.res;if(S.anim)return S.anim.thr.map(v=>v*R.q);return Array.from(R.R)}
+function ballsFor(mt){const R=S.res,c=dispCloud();if(mt==='cp')return[[c.ctr[0],c.ctr[1],R.qc]];if(mt==='pcp')return c.pts.map(p=>[p[0],p[1],R.qp]);const rr=orcaRadii();return c.pts.map((p,r)=>[p[0],p[1],rr[r]])}
+function insideSet(mt,p){return ballsFor(mt).some(([x,y,r])=>Math.hypot(x-p[0],y-p[1])<=r)}
+function badge(ctx,mt,X,Y,w,inn,mono){const t=inn?'in set':'outside';ctx.font='500 11px '+mono;const tw=ctx.measureText(t).width+12;ctx.fillStyle=inn?COL[mt]:COL.miss;const bx=Math.min(X+10,w-tw-4),by=Math.max(Y-26,4);ctx.beginPath();ctx.roundRect(bx,by,tw,18,4);ctx.fill();ctx.fillStyle=COL.surface;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t,bx+6,by+9.5)}
+function drawPanel2(mt,ctx,cv,w,h){const map=mapFor(w),R=S.res,mono=MONO(),c=dispCloud();
+  ctx.strokeStyle=rgba(COL.ink,.06);ctx.lineWidth=1;ctx.beginPath();for(let v=-1;v<=1;v++){ctx.moveTo(map.x(v)+.5,0);ctx.lineTo(map.x(v)+.5,h);ctx.moveTo(0,map.y(v)+.5);ctx.lineTo(w,map.y(v)+.5)}ctx.stroke();
+  drawContours(ctx,S.orc,map,[0.05,0.25,0.5,0.75]);
+  drawUnion(ctx,cv,ballsFor(mt),COL[mt],0.22,map);
+  ctx.fillStyle=COL.ink;for(const p of c.pts){ctx.beginPath();ctx.arc(map.x(p[0]),map.y(p[1]),2.5,0,2*Math.PI);ctx.fill()}
+  if(mt==='orca'&&S.hiRank>=0&&S.hiRank<R.K){const p=c.pts[S.hiRank],rr=orcaRadii()[S.hiRank],X=map.x(p[0]),Y=map.y(p[1]);ctx.strokeStyle=COL.orca;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(X,Y,Math.max(rr*map.s,0),0,2*Math.PI);ctx.stroke();ctx.fillStyle=COL.orca;ctx.beginPath();ctx.arc(X,Y,5,0,2*Math.PI);ctx.fill()}
+  if(S.probe){const X=map.x(S.probe[0]),Y=map.y(S.probe[1]);ctx.strokeStyle=COL.ink;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(X-8,Y);ctx.lineTo(X+8,Y);ctx.moveTo(X,Y-8);ctx.lineTo(X,Y+8);ctx.stroke();badge(ctx,mt,X,Y,w,insideSet(mt,S.probe),mono)}}
+function drawPanel1(mt,ctx,cv,w,h){const map=mapFor(w),R=S.res,O=S.orc,V=VIEWS[1],mono=MONO(),c=dispCloud();
+  const yTop=8,yBase=h*0.56,yRug=h*0.66,ySet=h*0.79,yAx=h*0.95;
+  let mx=0;for(let i=0;i<O.N;i+=4)mx=Math.max(mx,O.G[i]);
+  const yd=v=>yBase-(v/mx)*(yBase-yTop);
+  ctx.beginPath();ctx.moveTo(0,yBase);for(let i=0;i<O.N;i+=2)ctx.lineTo(map.x(V.x0+i*O.h),yd(O.G[i]));ctx.lineTo(w,yBase);ctx.closePath();ctx.fillStyle=rgba(COL.heat,.16);ctx.fill();
+  ctx.beginPath();for(let i=0;i<O.N;i+=2){const X=map.x(V.x0+i*O.h),Y=yd(O.G[i]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)}ctx.strokeStyle=rgba(COL.heat,.8);ctx.lineWidth=1.4;ctx.stroke();
+  const iv=mergeIv(ballsFor(mt).filter(b=>b[2]>0).map(([x,,r])=>[x-r,x+r]));
+  for(const[a,b]of iv){const X0=Math.max(-2,map.x(a)),X1=Math.min(w+2,map.x(b));ctx.fillStyle=rgba(COL[mt],.3);ctx.fillRect(X0,ySet-7,X1-X0,14);ctx.strokeStyle=COL[mt];ctx.lineWidth=1.5;ctx.strokeRect(X0,ySet-7,X1-X0,14)}
+  if(mt==='orca'&&S.hiRank>=0&&S.hiRank<R.K){const p=c.pts[S.hiRank],rr=orcaRadii()[S.hiRank];if(rr>0){ctx.fillStyle=rgba(COL.orca,.6);ctx.fillRect(map.x(p[0]-rr),ySet-7,2*rr*map.s,14)}ctx.fillStyle=COL.orca;ctx.beginPath();ctx.arc(map.x(p[0]),yRug,5,0,2*Math.PI);ctx.fill()}
+  ctx.fillStyle=rgba(COL.ink,.85);for(const p of c.pts){ctx.beginPath();ctx.arc(map.x(p[0]),yRug,2.8,0,2*Math.PI);ctx.fill()}
+  ctx.font='10px '+mono;ctx.textAlign='center';ctx.textBaseline='alphabetic';for(let v=-2;v<=2;v++){ctx.fillStyle=COL.muted;ctx.fillText(String(v),map.x(v),yAx)}
+  if(S.probe){const X=map.x(S.probe[0]);ctx.strokeStyle=COL.ink;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X+.5,yTop);ctx.lineTo(X+.5,ySet+9);ctx.stroke();badge(ctx,mt,X,yBase-6,w,insideSet(mt,S.probe),mono)}}
+function drawPanel(mt){const cv=cvs[mt];if(!cv.getClientRects().length)return;const{ctx,w,h}=fit(cv);ctx.fillStyle=COL.surface;ctx.fillRect(0,0,w,h);(S.dim===2?drawPanel2:drawPanel1)(mt,ctx,cv,w,h)}
+function drawPanels(){for(const mt of METH)drawPanel(mt)}
+
+const fmtA=a=>isFinite(a)?a.toFixed(2):'∞';
+function updateStats(){const R=S.res,tg=1-S.alpha,maxA=Math.max(...METH.map(mt=>isFinite(R.area[mt])?R.area[mt]:0),1e-9),O=S.orc;
+  document.querySelectorAll('.sizek').forEach(e=>e.textContent=S.dim===2?'Mean area':'Mean length');
+  for(const mt of METH){$('cov-'+mt).innerHTML=(100*R.cov[mt]).toFixed(1)+`%<small>target ${Math.round(100*tg)}%</small>`;$('covb-'+mt).style.width=(100*R.cov[mt])+'%';
+    $('area-'+mt).innerHTML=fmtA(R.area[mt])+`<small>${S.dim===2?'units²':'units'}</small>`;$('areab-'+mt).style.width=(100*Math.min(1,(isFinite(R.area[mt])?R.area[mt]:maxA)/maxA))+'%'}
+  document.querySelectorAll('.tgt').forEach(e=>e.style.left=`calc(${100*tg}% - 1px)`);
+  const dl=R.area.orca/R.area.pcp-1,el=$('delta');el.textContent=(dl<=0?'−':'+')+Math.abs(100*dl).toFixed(0)+(S.dim===2?'% area':'% length')+' vs PCP';el.classList.toggle('bad',dl>0);
+}
+
+/* ---------- compute + render ---------- */
+let pending=0,fullTimer=null;
+function compute(fast){S.anim=null;S.orc=oracle(S.blobs,S.alpha,S.dim);S.res=pipeline({blobs:S.blobs,dim:S.dim,K:S.K,alpha:S.alpha,hall:S.hall,fit:FIT,test:TEST,nT:fast?300:NT});renderAll()}
+function renderAll(){$('trio').classList.toggle('d1',S.dim===1);$('bench').classList.toggle('dim1',S.dim===1);$('bench').classList.toggle('dim2',S.dim===2);drawPanels();updateStats()}
+function schedule(){if(!pending)pending=requestAnimationFrame(()=>{pending=0;compute(true)});clearTimeout(fullTimer);fullTimer=setTimeout(()=>compute(false),260)}
+
+/* ---------- controls ---------- */
+function setDim(d){S.dim=d;S.disp=0;S.probe=null;S.hiRank=-1;$('b-d2').setAttribute('aria-pressed',String(d===2));$('b-d1').setAttribute('aria-pressed',String(d===1));compute(false)}
+$('b-d2').onclick=()=>setDim(2);$('b-d1').onclick=()=>setDim(1);
+$('s-alpha').oninput=e=>{S.alpha=1-e.target.value/100;$('o-alpha').textContent=e.target.value+'%';schedule()};
+$('s-k').oninput=e=>{S.K=+e.target.value;$('o-k').textContent=S.K;S.hiRank=-1;schedule()};
+$('b-draw').onclick=()=>{S.disp=(S.disp+1)%NAREA;drawPanels()};
+document.querySelectorAll('.tabs-m .chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs-m .chip').forEach(c=>c.setAttribute('aria-pressed',String(c===b)));
+  document.querySelectorAll('#trio .panel').forEach(p=>p.classList.toggle('show',p.dataset.m===b.dataset.show));drawPanels()});
+for(const mt of METH){const cv=cvs[mt];
+  cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect(),map=mapFor(r.width);S.probe=[map.ix(e.clientX-r.left),map.iy(e.clientY-r.top)];drawPanels()});
+  cv.addEventListener('pointerleave',()=>{S.probe=null;drawPanels()})}
+/* ---------- citation ---------- */
+$('b-copy').onclick=()=>{const t=$('bib').textContent,done=m=>{$('copy-msg').textContent=m};
+  const sel=()=>{const r=document.createRange();r.selectNodeContents($('bib'));const g=getSelection();g.removeAllRanges();g.addRange(r);done('Selected. Press Ctrl/Cmd+C to copy.')};
+  try{navigator.clipboard.writeText(t).then(()=>done('Copied.'),sel)}catch(e){sel()}};
+
+/* ---------- boot ---------- */
+function redrawAll(){if(S.res)renderAll()}
+readTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{readTheme();redrawAll()});
+new MutationObserver(()=>{readTheme();redrawAll()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+let rz=null;new ResizeObserver(()=>{clearTimeout(rz);rz=setTimeout(redrawAll,60)}).observe(document.body);
+compute(false);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(redrawAll);
+</script>
+</body>
+</html>
