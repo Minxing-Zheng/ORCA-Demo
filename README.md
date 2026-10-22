@@ -6,16 +6,16 @@
 <br>
 Carnegie Mellon University
 
-[![Live demo](https://img.shields.io/badge/Live_demo-open-007d70?style=flat-square)](https://minxing-zheng.github.io/ORCA-Demo/)
+[![Live demo](https://img.shields.io/badge/Live_demo-open-007d70?style=flat-square)](https://woody-zhu-group.github.io/ORCA-Demo/)
 [![NeurIPS 2026](https://img.shields.io/badge/NeurIPS-2026-102137?style=flat-square)](https://neurips.cc/virtual/2026/poster/149988)
 [![arXiv](https://img.shields.io/badge/arXiv-2410.13735-b31b1b?style=flat-square)](https://arxiv.org/abs/2410.13735)
 [![Code](https://img.shields.io/badge/Code-Minxing--Zheng%2FORCA-24292f?style=flat-square&logo=github)](https://github.com/Minxing-Zheng/ORCA)
 
-<a href="https://minxing-zheng.github.io/ORCA-Demo/">
+<a href="https://woody-zhu-group.github.io/ORCA-Demo/">
   <img src="assets/preview.png" alt="Standard CP, PCP and ORCA prediction sets on the same generated samples" width="100%">
 </a>
 
-<sub>Standard CP, PCP and ORCA on the same generated samples. <a href="https://minxing-zheng.github.io/ORCA-Demo/">Open the live demo</a>.</sub>
+<sub>Standard CP, PCP and ORCA on the same generated samples. <a href="https://woody-zhu-group.github.io/ORCA-Demo/">Open the live demo</a>.</sub>
 
 </div>
 
